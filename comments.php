@@ -1,4 +1,9 @@
-<?php if (!defined('__TYPECHO_ROOT_DIR__')) exit; ?>
+<?php
+if (!defined('__TYPECHO_ROOT_DIR__')) exit;
+$ztmyEscape = static function ($value) {
+    return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+};
+?>
 
 <div id="comments">
     <?php $this->comments()->to($comments); ?>
@@ -11,7 +16,7 @@
         <?php while($comments->next()): ?>
         <div class="comment-item" id="<?php $comments->theId(); ?>" style="border:1px solid #333; padding:10px; margin-bottom:15px; background:#0a0a0a;">
             <div class="comment-author" style="color:var(--purple); font-weight:bold; margin-bottom:5px;">
-                [SIGNAL FROM: <?php $comments->author(); ?>]
+                [SIGNAL FROM: <?php echo $ztmyEscape($comments->author); ?>]
                 <span style="float:right; opacity:0.6; font-size:0.8rem;"><?php $comments->date('Y-m-d H:i'); ?></span>
             </div>
             <div class="comment-content" style="line-height:1.6;">
@@ -32,9 +37,9 @@
             /// TRANSMIT_NEW_SIGNAL
         </h3>
         
-        <form method="post" action="<?php $this->commentUrl() ?>" id="comment-form" role="form">
+        <form method="post" action="<?php echo $ztmyEscape($this->commentUrl); ?>" id="comment-form" role="form">
             <?php $security = $this->widget('Widget_Security'); ?>
-            <input type="hidden" name="_" value="<?php echo $security->getToken($this->request->getReferer()); ?>">
+            <input type="hidden" name="_" value="<?php echo $ztmyEscape($security->getToken($this->request->getRequestUrl())); ?>">
             
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <input type="text" name="author" placeholder="IDENTITY (Required)" value="<?php $this->remember('author'); ?>" required style="background:#000; border:1px solid var(--purple); color:var(--green); flex:1; padding:10px; font-family:'VT323';" />
