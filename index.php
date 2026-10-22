@@ -1,16 +1,20 @@
 <?php
 if (!defined('__TYPECHO_ROOT_DIR__')) exit;
+$ztmyEscape = static function ($value) {
+    return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+};
+$ztmyJsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE;
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php $this->options->title(); ?></title>
-    <link rel="stylesheet" href="<?php $this->options->themeUrl('style.css'); ?>">
+    <title><?php echo $ztmyEscape($this->options->title); ?></title>
+    <link rel="stylesheet" href="<?php echo $ztmyEscape(rtrim($this->options->themeUrl, '/') . '/style.css'); ?>">
     <link href="https://fonts.geekzu.org/css2?family=VT323&family=Zen+Kaku+Gothic+New:wght@700&family=DotGothic16&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
-    <style>body { background-image: url('<?php $this->options->themeUrl("images/Ayanami.png"); ?>') !important; }</style>
+    <style>body { background-image: url(<?php echo json_encode(rtrim($this->options->themeUrl, '/') . '/images/Ayanami.png', $ztmyJsonFlags); ?>) !important; }</style>
 </head>
 <body>
 
@@ -35,7 +39,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
             <div class="icon" onclick="openWindow('win-chat')"><div class="icon-img">💬</div><span>SIGNAL_ROOM</span></div>
             <div class="icon" onclick="openWindow('win-minesweeper'); setTimeout(initMinesweeper, 100);"><div class="icon-img">💣</div><span>MINESWEEPER</span></div>
             <div class="icon" onclick="openWindow('win-xmas')"><div class="icon-img">🎄</div><span>XMAS_TREE</span></div>
-            <div class="icon" onclick="window.open('<?php $this->options->adminUrl(); ?>', '_blank')"><div class="icon-img">⚙️</div><span>ADMIN</span></div>
+            <div class="icon" data-admin-url="<?php echo $ztmyEscape($this->options->adminUrl); ?>" onclick="window.open(this.dataset.adminUrl, '_blank', 'noopener,noreferrer')"><div class="icon-img">⚙️</div><span>ADMIN</span></div>
         </div>
 
         <div id="win-walkman" class="window" style="display:none; top: 15%; left: 20%; width: 420px; z-index: 160;">
@@ -83,20 +87,25 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
                     <div class="sidebar-divider">CATEGORIES</div>
                     <?php $this->widget('Widget_Metas_Category_List')->to($cats); ?>
                     <?php while($cats->next()): ?>
-                        <div class="sidebar-item" id="cat-<?php $cats->slug(); ?>" onclick="filterCategory('<?php $cats->slug(); ?>')"><span class="icon">📁</span> <?php $cats->name(); ?></div>
+                        <div class="sidebar-item" id="cat-<?php echo $ztmyEscape($cats->slug); ?>" data-slug="<?php echo $ztmyEscape($cats->slug); ?>" onclick="filterCategory(this.dataset.slug)"><span class="icon">📁</span> <?php echo $ztmyEscape($cats->name); ?></div>
                     <?php endwhile; ?>
                 </div>
                 <div class="explorer-main">
                     <div class="file-header"><span style="flex:2">NAME</span><span style="flex:1">DATE</span><span style="flex:1">CATEGORY</span></div>
                     <div class="file-list-container">
                     <?php while($this->next()): ?>
-                        <div class="file-row" onclick="openPost('post-<?php $this->cid(); ?>', '<?php $this->title(); ?>')" data-cat="<?php $this->category(); ?>" data-title="<?php $this->title(); ?>">
-                            <span class="file-name" style="flex:2"><span class="f-icon">📄</span> <?php $this->title(); ?></span>
+                        <?php
+                        $ztmyCategories = $this->categories ?: [];
+                        $ztmyCategorySlugs = array_column($ztmyCategories, 'slug');
+                        $ztmyCategoryNames = implode(', ', array_column($ztmyCategories, 'name'));
+                        ?>
+                        <div class="file-row" onclick="openPost(this.dataset.postId, this.dataset.title)" data-post-id="post-<?php echo (int) $this->cid; ?>" data-cats="<?php echo $ztmyEscape(json_encode($ztmyCategorySlugs, $ztmyJsonFlags)); ?>" data-title="<?php echo $ztmyEscape($this->title); ?>">
+                            <span class="file-name" style="flex:2"><span class="f-icon">📄</span> <?php echo $ztmyEscape($this->title); ?></span>
                             <span class="file-date" style="flex:1"><?php $this->date('Y-m-d'); ?></span>
-                            <span class="file-size" style="flex:1"><?php $this->category(); ?></span>
+                            <span class="file-size" style="flex:1"><?php echo $ztmyEscape($ztmyCategoryNames); ?></span>
                         </div>
-                        <div id="post-<?php $this->cid(); ?>" style="display:none;">
-                            <div class="post-meta">DATE: <?php $this->date(); ?> | CATEGORY: <?php $this->category(); ?></div>
+                        <div id="post-<?php echo (int) $this->cid; ?>" style="display:none;">
+                            <div class="post-meta">DATE: <?php $this->date(); ?> | CATEGORY: <?php echo $ztmyEscape($ztmyCategoryNames); ?></div>
                             <div class="post-body line-numbers"><?php $this->content(); ?></div>
                             <hr><?php $this->need('comments.php'); ?>
                         </div>
@@ -136,7 +145,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <script>
         // === WALKMAN 歌单配置 (25首) ===
-        const themePath = '<?php $this->options->themeUrl(); ?>';
+        const themePath = <?php echo json_encode(rtrim($this->options->themeUrl, '/'), $ztmyJsonFlags); ?>;
         const playlist = [
             { title: "Keil Keygen.exe", file: "keil_keygen.mp3" },
             { title: "ZTMY: MILABO", file: "milabo.mp3" },
@@ -223,7 +232,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
             if(activeBtn) activeBtn.classList.add('active');
             document.getElementById('explorer-path').value = 'C:/SYSTEM/LOGS/' + (slug === 'all' ? '' : slug.toUpperCase());
             rows.forEach(row => {
-                if (slug === 'all' || row.getAttribute('data-cat') === slug) row.style.display = 'flex';
+                if (slug === 'all' || JSON.parse(row.dataset.cats || '[]').includes(slug)) row.style.display = 'flex';
                 else row.style.display = 'none';
             });
         }
@@ -244,7 +253,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
         function dragWindow(e,id){let win=document.getElementById(id); bringToFront(win); let sX=e.clientX-win.getBoundingClientRect().left, sY=e.clientY-win.getBoundingClientRect().top; function onM(ev){win.style.left=ev.pageX-sX+'px'; win.style.top=ev.pageY-sY+'px';} document.addEventListener('mousemove',onM); document.onmouseup=()=>document.removeEventListener('mousemove',onM);}
 
         // === 终端 & 扫雷 ===
-        const termInput=document.getElementById('term-input'),termOutput=document.getElementById('term-output');function focusTerminal(){termInput.focus();}termInput.addEventListener('keydown',function(e){if(e.key==='Enter'){const cmd=this.value.trim().toLowerCase();printTerm('root@kyokuya:~$ '+this.value);this.value='';processCommand(cmd);}});function printTerm(text){termOutput.innerHTML+=text+'<br>';termOutput.scrollTop=termOutput.scrollHeight;}function processCommand(cmd){switch(cmd){case'help':printTerm('Commands: ls, date, whoami, clear, mines');break;case'ls':printTerm('--- FILES ---');document.querySelectorAll('.file-row').forEach(p=>printTerm(p.getAttribute('data-title')));break;case'date':printTerm(new Date().toString());break;case'whoami':printTerm('Guest User');break;case'clear':termOutput.innerHTML='';break;case'mines':openWindow('win-minesweeper');initMinesweeper();printTerm('Starting...');break;default:if(cmd!=='')printTerm('Unknown command: '+cmd);}}const ROWS=10,COLS=10,MINES=10;let grid=[],mineLocations=[],flags=0,isGameOver=false,timer=0,timerInterval;function initMinesweeper(){const el=document.getElementById('mine-grid');if(!el)return;el.innerHTML='';grid=[];mineLocations=[];flags=0;isGameOver=false;clearInterval(timerInterval);timer=0;document.getElementById('mine-timer').innerText='000';document.getElementById('mine-count').innerText=MINES;document.querySelector('.mine-reset-btn').innerText='😊';document.getElementById('mine-result').innerText='';for(let r=0;r<ROWS;r++){let row=[];for(let c=0;c<COLS;c++){let cell=document.createElement('div');cell.classList.add('mine-cell');cell.onclick=()=>clickCell(r,c);cell.oncontextmenu=(e)=>{e.preventDefault();toggleFlag(r,c);};el.appendChild(cell);row.push({el:cell,mine:false,revealed:false,flagged:false,count:0});}grid.push(row);}let p=0;while(p<MINES){let r=Math.floor(Math.random()*ROWS),c=Math.floor(Math.random()*COLS);if(!grid[r][c].mine){grid[r][c].mine=true;mineLocations.push({r,c});p++;}}for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!grid[r][c].mine){let n=0;for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){let nr=r+i,nc=c+j;if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&grid[nr][nc].mine)n++;}grid[r][c].count=n;}timerInterval=setInterval(()=>{timer++;document.getElementById('mine-timer').innerText=timer.toString().padStart(3,'0');},1000);}function clickCell(r,c){if(isGameOver||grid[r][c].revealed||grid[r][c].flagged)return;if(grid[r][c].mine)gameOver(false);else{reveal(r,c);checkWin();}}function toggleFlag(r,c){if(isGameOver||grid[r][c].revealed)return;let cell=grid[r][c];cell.flagged=!cell.flagged;cell.el.innerText=cell.flagged?'🚩':'';flags+=cell.flagged?1:-1;document.getElementById('mine-count').innerText=MINES-flags;}function reveal(r,c){if(r<0||r>=ROWS||c<0||c>=COLS||grid[r][c].revealed||grid[r][c].flagged)return;let cell=grid[r][c];cell.revealed=true;cell.el.classList.add('revealed');if(cell.count>0){cell.el.innerText=cell.count;cell.el.setAttribute('data-num',cell.count);}else for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)reveal(r+i,c+j);}function gameOver(w){isGameOver=true;clearInterval(timerInterval);let r=document.getElementById('mine-result');let b=document.querySelector('.mine-reset-btn');if(w){r.innerText="SECURED";r.style.color="var(--green)";b.innerText="😎";}else{r.innerText="BOOM!";r.style.color="red";b.innerText="💀";mineLocations.forEach(l=>{grid[l.r][l.c].el.innerText='💣';grid[l.r][l.c].el.classList.add('mine-hit');});}}function checkWin(){let rv=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c].revealed)rv++;if(rv===(ROWS*COLS-MINES))gameOver(true);}
+        const termInput=document.getElementById('term-input'),termOutput=document.getElementById('term-output');function focusTerminal(){termInput.focus();}termInput.addEventListener('keydown',function(e){if(e.key==='Enter'){const cmd=this.value.trim().toLowerCase();printTerm('root@kyokuya:~$ '+this.value);this.value='';processCommand(cmd);}});function printTerm(text){termOutput.appendChild(document.createTextNode(String(text)));termOutput.appendChild(document.createElement('br'));termOutput.scrollTop=termOutput.scrollHeight;}function processCommand(cmd){switch(cmd){case'help':printTerm('Commands: ls, date, whoami, clear, mines');break;case'ls':printTerm('--- FILES ---');document.querySelectorAll('.file-row').forEach(p=>printTerm(p.getAttribute('data-title')));break;case'date':printTerm(new Date().toString());break;case'whoami':printTerm('Guest User');break;case'clear':termOutput.innerHTML='';break;case'mines':openWindow('win-minesweeper');initMinesweeper();printTerm('Starting...');break;default:if(cmd!=='')printTerm('Unknown command: '+cmd);}}const ROWS=10,COLS=10,MINES=10;let grid=[],mineLocations=[],flags=0,isGameOver=false,timer=0,timerInterval;function initMinesweeper(){const el=document.getElementById('mine-grid');if(!el)return;el.innerHTML='';grid=[];mineLocations=[];flags=0;isGameOver=false;clearInterval(timerInterval);timer=0;document.getElementById('mine-timer').innerText='000';document.getElementById('mine-count').innerText=MINES;document.querySelector('.mine-reset-btn').innerText='😊';document.getElementById('mine-result').innerText='';for(let r=0;r<ROWS;r++){let row=[];for(let c=0;c<COLS;c++){let cell=document.createElement('div');cell.classList.add('mine-cell');cell.onclick=()=>clickCell(r,c);cell.oncontextmenu=(e)=>{e.preventDefault();toggleFlag(r,c);};el.appendChild(cell);row.push({el:cell,mine:false,revealed:false,flagged:false,count:0});}grid.push(row);}let p=0;while(p<MINES){let r=Math.floor(Math.random()*ROWS),c=Math.floor(Math.random()*COLS);if(!grid[r][c].mine){grid[r][c].mine=true;mineLocations.push({r,c});p++;}}for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!grid[r][c].mine){let n=0;for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){let nr=r+i,nc=c+j;if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&grid[nr][nc].mine)n++;}grid[r][c].count=n;}timerInterval=setInterval(()=>{timer++;document.getElementById('mine-timer').innerText=timer.toString().padStart(3,'0');},1000);}function clickCell(r,c){if(isGameOver||grid[r][c].revealed||grid[r][c].flagged)return;if(grid[r][c].mine)gameOver(false);else{reveal(r,c);checkWin();}}function toggleFlag(r,c){if(isGameOver||grid[r][c].revealed)return;let cell=grid[r][c];cell.flagged=!cell.flagged;cell.el.innerText=cell.flagged?'🚩':'';flags+=cell.flagged?1:-1;document.getElementById('mine-count').innerText=MINES-flags;}function reveal(r,c){if(r<0||r>=ROWS||c<0||c>=COLS||grid[r][c].revealed||grid[r][c].flagged)return;let cell=grid[r][c];cell.revealed=true;cell.el.classList.add('revealed');if(cell.count>0){cell.el.innerText=cell.count;cell.el.setAttribute('data-num',cell.count);}else for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)reveal(r+i,c+j);}function gameOver(w){isGameOver=true;clearInterval(timerInterval);let r=document.getElementById('mine-result');let b=document.querySelector('.mine-reset-btn');if(w){r.innerText="SECURED";r.style.color="var(--green)";b.innerText="😎";}else{r.innerText="BOOM!";r.style.color="red";b.innerText="💀";mineLocations.forEach(l=>{grid[l.r][l.c].el.innerText='💣';grid[l.r][l.c].el.classList.add('mine-hit');});}}function checkWin(){let rv=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c].revealed)rv++;if(rv===(ROWS*COLS-MINES))gameOver(true);}
     </script>
 </body>
 </html>
